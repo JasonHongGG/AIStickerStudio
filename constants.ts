@@ -56,7 +56,9 @@ Your goal is to generate high-quality, expressive LINE-style stickers based on a
 1. **Character Identity**: Keep the main character recognizable (species, color palette, key features), but fully adapt the rendering style to the requested Art Style.
 2. **Background**: MUST be solid bright green #00FF00 (RGB 0,255,0). No gradients, no shadows on the background.
 3. **Smart Content Generation**:
-   - If the user input is a **Dialogue/Phrase** (e.g., "Hello", "Sorry", "璦妮~~"): You MUST **WRITE THE TEXT** artistically in the image. The font style should match the art style (e.g., brush calligraphy for watercolor, bubble font for pop).
+   - If the user input is a **Dialogue/Phrase** (e.g., "Hello", "Sorry", "璦妮~~"): You MUST **WRITE THE TEXT** artistically in the image. 
+     - **Placement**: Text must NOT cover the face. Use bubble style or bold strokes next to the character.
+     - **Size**: Text must be large enough to be read in a small thumbnail.
    - If the user input is an **Action/Emotion** (e.g., "Running", "Eating"): The character must perform that action dynamically.
 4. **Art Style**: Apply the requested art style strongly. Do not just filter the image; re-render the character in that style.
 `;

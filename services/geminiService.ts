@@ -58,14 +58,19 @@ export const generateExpression = async (
 3.  **User Input**: "${expressionInput}"
 
 4.  **Critical Rules for Content Generation**:
-    *   **IF Input contains Chinese characters (e.g., "璦妮~~") or is a quote**:
-        - You **MUST WRITE THE TEXT** verbatim in the image.
-        - **LEGIBILITY IS KEY**: Ensure Chinese characters are written with **CORRECT STROKE ORDER and STRUCTURE**. Do not generate pseudo-language or garbled shapes. The text must be sharp and readable, like a professional sticker caption.
-        - Text style should match the art style (e.g., Hand-drawn, Brush, or Pop font).
+    *   **IF Input contains Chinese characters (e.g., "璦妮~~", "早安") or is a Quote**:
+        - **TEXT CONTENT**: Write "${expressionInput}" verbatim.
+        - **COMPOSITION & LAYOUT (CRITICAL)**:
+            - **NO OVERLAP**: Text and Character must not fight for space. Place text in the **Negative Space** (Top, Bottom, or Side).
+            - **FACE SAFETY**: Text must **NEVER** cover the character's face or eyes.
+            - **SIZE**: Text must be **HUGE, BOLD, and COMPACT**. It should occupy about 20-30% of the image area to ensure readability on small mobile screens.
+            - **INTEGRATION**: Use a font style that matches the art (e.g., Pop Bubble, Bold Stroke, or Calligraphy). The text position should balance the character's pose.
+        - **LEGIBILITY**: Ensure Chinese characters have **CORRECT STROKE ORDER**. No garbled text.
+        - **ACTION**: The character should perform an action that matches the meaning of the text.
     
-    *   **IF Input is an English description of an Action/Emotion (e.g., "Happy", "Running", "Eating")**:
-        - **DO NOT ADD ANY TEXT**. Absolutely NO text overlays, NO speech bubbles, NO sound effects.
-        - JUST DRAW the character performing the action or showing the emotion.
+    *   **IF Input is purely an Action/Emotion description (e.g., "Running", "Happy")**:
+        - **DO NOT ADD ANY TEXT**. Absolutely NO text overlays.
+        - JUST DRAW the character performing the action.
 
 5.  **Output Requirements**:
     - High-quality sticker art.
