@@ -264,7 +264,7 @@ const App: React.FC = () => {
 
   // --- Individual Operations ---
 
-  const handleRegenerate = async (id: string) => {
+  const handleRegenerate = async (id: string, refinePrompt: string = '') => {
     if (!sourceImage) {
         alert("請先上傳原始圖片才能重新生成");
         return;
@@ -284,8 +284,16 @@ const App: React.FC = () => {
         const exp = EXPRESSIONS.find(e => e.name === targetImage.expressionName);
         promptText = exp ? exp.enName : targetImage.expressionName;
 
-        // Use current model
-        const generatedBase64 = await generateExpression(base64, promptText, style.promptSuffix, themeText, geminiModel);
+        // Use current model with Optional Refinement Prompt
+        const generatedBase64 = await generateExpression(
+            base64, 
+            promptText, 
+            style.promptSuffix, 
+            themeText, 
+            geminiModel, 
+            refinePrompt // Pass refinement
+        );
+        
         const noBgDataUrl = await removeBackground(`data:image/png;base64,${generatedBase64}`);
         const res = await fetch(noBgDataUrl);
         const blob = await res.blob();

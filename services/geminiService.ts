@@ -40,27 +40,42 @@ export const generateExpression = async (
     expressionInput: string,
     styleSuffix: string,
     theme: string,
-    modelName: string = 'gemini-2.5-flash-image'
+    modelName: string = 'gemini-2.5-flash-image',
+    refinePrompt: string = '' 
 ): Promise<string> => {
     try {
         const client = getClient();
         
         // Optimize the prompt: Prioritize Image Quality > Action > Text Rules
         const themeContext = theme 
-            ? `Context: The character is in a scenario related to "${theme}" (Costumes/Props).` 
+            ? `Context: The character is in a scenario related to "${theme}" (Costumes/Props). Integrate these elements naturally.` 
+            : "";
+
+        // Inject refinement instruction if it exists
+        // Enhanced to specifically address the "unnatural props" issue
+        const refinementInstruction = refinePrompt 
+            ? `\n\n### ⚠️ REFINEMENT INSTRUCTIONS (HIGHEST PRIORITY) ⚠️
+            The user wants to EDIT the previous output with: "${refinePrompt}".
+            1. **Natural Integration**: If the request involves **Clothing, Hats, or Accessories**, the character must **WEAR** them physically.
+               - **Do not** just paste the item on top of the image.
+               - **Do** wrap the clothes around the body.
+               - **Do** compress hair/ears under hats if necessary.
+               - **Do** adjust the character's pose to interact with the item if applicable.
+            2. **Priority**: This refinement request overrides strict adherence to the original reference image ONLY for the specific parts being changed (e.g., changing outfit). Keep the face/species identity intact.` 
             : "";
 
         const finalUserPrompt = `
 **TASK**: Generate a high-quality LINE sticker based on the **Reference Image**.
 
-**1. CHARACTER & STYLE (Highest Priority)**:
-*   **Reference**: You MUST maintain the character's key features (species, eye shape, color palette, markings) from the Reference Image. Do not create a random character.
+**1. CHARACTER & STYLE (High Priority)**:
+*   **Reference**: You MUST maintain the character's key features (species, eye shape, color palette, markings) from the Reference Image.
 *   **Style**: Re-render the character ${styleSuffix || "keeping the original art style"}.
 *   **Quality**: Ensure clean lines, vibrant colors, and professional sticker aesthetics.
 
 **2. CONTENT**:
 *   **Action/Emotion**: The character is acting out: "${expressionInput}".
 *   ${themeContext}
+    ${refinementInstruction}
 
 **3. TEXT RULES (Strict)**:
 *   **General Rule**: Do NOT write the Theme name, Style name, or Emotion name on the image.
