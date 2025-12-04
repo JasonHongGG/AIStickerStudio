@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { GeneratedImage } from '../types';
-import { Download, Trash2, RefreshCw, Layout, Layers, Box, AlertTriangle, FolderOpen, Star, Database, Edit2, Check, X } from 'lucide-react';
+import { Download, Trash2, RefreshCw, Layout, Layers, Box, AlertTriangle, FolderOpen, Star, Database, Edit2, Check, X, ZoomIn } from 'lucide-react';
 import JSZip from 'jszip';
 import { resizeImage } from '../services/imageProcessingService';
 
@@ -12,6 +12,59 @@ interface ResultSectionProps {
   onUpdatePackName: (batchId: string, newName: string) => void;
 }
 
+// --- Lightbox Component ---
+const ImageLightbox: React.FC<{ image: GeneratedImage | null; onClose: () => void }> = ({ image, onClose }) => {
+    const [url, setUrl] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (image && image.originalImageBlob) {
+            const newUrl = URL.createObjectURL(image.originalImageBlob);
+            setUrl(newUrl);
+            return () => URL.revokeObjectURL(newUrl);
+        }
+    }, [image]);
+
+    // Close on ESC key
+    useEffect(() => {
+        const handleEsc = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') onClose();
+        };
+        window.addEventListener('keydown', handleEsc);
+        return () => window.removeEventListener('keydown', handleEsc);
+    }, [onClose]);
+
+    if (!image || !url) return null;
+
+    return (
+        <div 
+            className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200"
+            onClick={onClose}
+        >
+            <button 
+                onClick={onClose}
+                className="absolute top-4 right-4 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 rounded-full p-2 transition-colors"
+            >
+                <X size={24} />
+            </button>
+
+            <div 
+                className="relative max-w-4xl max-h-[90vh] flex flex-col items-center"
+                onClick={(e) => e.stopPropagation()} // Prevent closing when clicking image area
+            >
+                <img 
+                    src={url} 
+                    alt={image.expressionName} 
+                    className="max-w-full max-h-[80vh] object-contain drop-shadow-2xl rounded-lg bg-[url('https://raw.githubusercontent.com/transparent-textures/patterns/master/patterns/transparent-square-tiles.png')] bg-repeat" 
+                />
+                <div className="mt-4 text-center">
+                     <h3 className="text-white text-xl font-bold">{image.expressionName}</h3>
+                     <p className="text-gray-400 text-sm mt-1">{image.styleName}</p>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 // Separate component for each batch group to handle editing state independently
 const BatchGroup: React.FC<{
     batchId: string;
@@ -20,7 +73,8 @@ const BatchGroup: React.FC<{
     onRegenerate: (id: string) => void;
     onUpdateOptions: (id: string, options: Partial<GeneratedImage['downloadOptions']>) => void;
     onUpdatePackName: (batchId: string, newName: string) => void;
-}> = ({ batchId, groupImages, onDelete, onRegenerate, onUpdateOptions, onUpdatePackName }) => {
+    onViewImage: (img: GeneratedImage) => void;
+}> = ({ batchId, groupImages, onDelete, onRegenerate, onUpdateOptions, onUpdatePackName, onViewImage }) => {
     
     const [isEditing, setIsEditing] = useState(false);
     const firstImg = groupImages[0];
@@ -193,10 +247,10 @@ const BatchGroup: React.FC<{
                     return (
                     <div 
                         key={img.id} 
-                        className={`relative bg-white rounded-xl overflow-hidden border transition-all duration-300 hover:shadow-lg flex flex-col ${isCompleted ? 'border-yellow-500' : 'border-gray-200'}`}
+                        className={`group relative bg-white rounded-xl overflow-hidden border transition-all duration-300 hover:shadow-lg flex flex-col ${isCompleted ? 'border-yellow-500' : 'border-gray-200'}`}
                     >
                         {/* Top Left Badges */}
-                        <div className="absolute top-2 left-2 flex flex-col gap-1 z-10">
+                        <div className="absolute top-2 left-2 flex flex-col gap-1 z-10 pointer-events-none">
                             {isMainSelected && (
                                 <span className="bg-yellow-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm animate-in fade-in zoom-in duration-300">
                                     <Star size={10} fill="currentColor" />
@@ -214,14 +268,14 @@ const BatchGroup: React.FC<{
                         {/* Top Right Controls */}
                         <div className="absolute top-2 right-2 flex flex-col gap-1 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200 md:opacity-100">
                             <button 
-                                onClick={() => onDelete(img.id)}
+                                onClick={(e) => { e.stopPropagation(); onDelete(img.id); }}
                                 className="w-7 h-7 flex items-center justify-center bg-white/90 backdrop-blur-sm rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 border border-gray-100 shadow-sm transition-colors"
                                 title="刪除"
                             >
                                 <Trash2 size={14} />
                             </button>
                             <button 
-                                onClick={() => onRegenerate(img.id)}
+                                onClick={(e) => { e.stopPropagation(); onRegenerate(img.id); }}
                                 className="w-7 h-7 flex items-center justify-center bg-white/90 backdrop-blur-sm rounded-full text-gray-400 hover:text-blue-500 hover:bg-blue-50 border border-gray-100 shadow-sm transition-colors"
                                 title="重新生成"
                             >
@@ -229,8 +283,11 @@ const BatchGroup: React.FC<{
                             </button>
                         </div>
 
-                        {/* Image Display */}
-                        <div className="h-64 flex items-center justify-center p-4 bg-gray-50/30">
+                        {/* Image Display Area */}
+                        <div 
+                            className={`h-64 flex items-center justify-center p-4 bg-gray-50/30 relative overflow-hidden ${isCompleted ? 'cursor-zoom-in' : ''}`}
+                            onClick={() => isCompleted && onViewImage(img)}
+                        >
                             {img.status === 'processing' && (
                                 <div className="flex flex-col items-center text-yellow-600 animate-pulse">
                                     <RefreshCw className="animate-spin mb-2" size={24} />
@@ -240,11 +297,19 @@ const BatchGroup: React.FC<{
                             {img.status === 'pending' && <span className="text-gray-300 text-xs">等待中...</span>}
                             {img.status === 'failed' && <span className="text-red-400 text-xs text-center px-1">生成失敗</span>}
                             {isCompleted && img.originalImageBlob && (
-                                <img 
-                                    src={URL.createObjectURL(img.originalImageBlob)} 
-                                    alt={img.expressionName} 
-                                    className="w-full h-full object-contain drop-shadow-sm transform hover:scale-105 transition-transform duration-300"
-                                />
+                                <>
+                                    <img 
+                                        src={URL.createObjectURL(img.originalImageBlob)} 
+                                        alt={img.expressionName} 
+                                        className="w-full h-full object-contain drop-shadow-sm transform group-hover:scale-105 transition-transform duration-300"
+                                    />
+                                    {/* Hover Overlay for Zoom Hint */}
+                                    <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center backdrop-blur-[1px]">
+                                        <div className="bg-white/90 rounded-full p-2 shadow-lg transform translate-y-4 group-hover:translate-y-0 transition-transform">
+                                            <ZoomIn size={20} className="text-gray-700" />
+                                        </div>
+                                    </div>
+                                </>
                             )}
                         </div>
 
@@ -306,6 +371,7 @@ export const ResultSection: React.FC<ResultSectionProps> = ({
   onUpdateOptions,
   onUpdatePackName
 }) => {
+  const [viewingImage, setViewingImage] = useState<GeneratedImage | null>(null);
 
   // Group by Batch ID
   const groupedResults = React.useMemo(() => {
@@ -327,6 +393,10 @@ export const ResultSection: React.FC<ResultSectionProps> = ({
 
   return (
     <div className="flex flex-col gap-6">
+        <ImageLightbox 
+            image={viewingImage} 
+            onClose={() => setViewingImage(null)} 
+        />
         
         {/* Header Section */}
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
@@ -354,6 +424,7 @@ export const ResultSection: React.FC<ResultSectionProps> = ({
                     onRegenerate={onRegenerate}
                     onUpdateOptions={onUpdateOptions}
                     onUpdatePackName={onUpdatePackName}
+                    onViewImage={setViewingImage}
                 />
             ))
         )}
